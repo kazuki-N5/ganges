@@ -1,0 +1,18 @@
+# Environment files
+**/.env
+**/*.env
+!**/.env.example
+
+# Flutter build & dependencies
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/ios/Flutter/.last_build_id
+
+# System / IDE files
+.DS_Store
+*.log
+.vscode/
