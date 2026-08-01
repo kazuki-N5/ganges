@@ -19,8 +19,13 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE order_items ADD COLUMN item_url TEXT;');
+        }
+      },
     );
   }
 
@@ -81,6 +86,7 @@ class AppDatabase {
         price INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
         image_url TEXT,
+        item_url TEXT,
         FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE
       )
     ''');

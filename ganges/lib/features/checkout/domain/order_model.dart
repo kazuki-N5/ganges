@@ -6,6 +6,7 @@ class OrderItem {
   final int price;
   final int quantity;
   final String imageUrl;
+  final String itemUrl;
 
   OrderItem({
     required this.id,
@@ -15,6 +16,7 @@ class OrderItem {
     required this.price,
     required this.quantity,
     required this.imageUrl,
+    this.itemUrl = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class OrderItem {
       'price': price,
       'quantity': quantity,
       'image_url': imageUrl,
+      'item_url': itemUrl,
     };
   }
 
@@ -38,6 +41,7 @@ class OrderItem {
       price: map['price'] ?? 0,
       quantity: map['quantity'] ?? 1,
       imageUrl: map['image_url'] ?? '',
+      itemUrl: map['item_url'] ?? '',
     );
   }
 }

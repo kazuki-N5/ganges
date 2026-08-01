@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../cart/providers/cart_provider.dart';
+import '../../product/domain/product_model.dart';
+import '../../product/presentation/product_detail_screen.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
-  Future<void> _launchUrl(String urlStr, BuildContext context) async {
-    final Uri url = Uri.parse(urlStr.isEmpty ? 'https://hb.afl.rakuten.co.jp/' : urlStr);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ページを開くことができませんでした')),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -195,49 +186,64 @@ class HistoryScreen extends ConsumerWidget {
                             const Divider(height: 1, color: AppColors.borderGrey),
 
                             // 明細商品リスト
-                            ...order.items.map((item) => Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    color: Colors.grey[100],
-                                    child: item.imageUrl.isNotEmpty
-                                        ? Image.network(item.imageUrl, fit: BoxFit.contain)
-                                        : const Icon(Icons.shopping_bag, color: Colors.grey),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                        const SizedBox(height: 2),
-                                        Text('数量: ${item.quantity}  /  単価: ¥${currencyFormat.format(item.price)}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )),
+                            ...order.items.map((item) => InkWell(
+                              onTap: () {
+                                String itemUrl = item.itemUrl;
+                                if (itemUrl.isEmpty) {
+                                  if (item.itemCode.contains(':')) {
+                                    final path = item.itemCode.replaceAll(':', '/');
+                                    itemUrl = 'https://hb.afl.rakuten.co.jp/hgc/364cf6e6.0384aee9.364cf6e7.ee1656bc/?pc=${Uri.encodeComponent('https://item.rakuten.co.jp/$path/')}';
+                                  } else {
+                                    itemUrl = 'https://hb.afl.rakuten.co.jp/hgc/364cf6e6.0384aee9.364cf6e7.ee1656bc/?pc=${Uri.encodeComponent('https://search.rakuten.co.jp/search/mall/${item.title}/')}';
+                                  }
+                                }
 
-                            // アフィリエイトリンクボタン
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.red[800],
-                                    side: BorderSide(color: Colors.red[300]!),
+                                final product = Product(
+                                  itemCode: item.itemCode,
+                                  title: item.title,
+                                  price: item.price,
+                                  imageUrl: item.imageUrl,
+                                  itemUrl: itemUrl,
+                                  reviewAverage: 4.5,
+                                  reviewCount: 100,
+                                  shopName: '楽天市場取扱店舗',
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailScreen(product: product),
                                   ),
-                                  onPressed: () => _launchUrl('', context),
-                                  icon: const Icon(Icons.shopping_bag_outlined, size: 16),
-                                  label: const Text('本物の楽天で再検索', style: TextStyle(fontSize: 12)),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey[100],
+                                      child: item.imageUrl.isNotEmpty
+                                          ? Image.network(item.imageUrl, fit: BoxFit.contain)
+                                          : const Icon(Icons.shopping_bag, color: Colors.grey),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                          const SizedBox(height: 2),
+                                          Text('数量: ${item.quantity}  /  単価: ¥${currencyFormat.format(item.price)}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                                  ],
                                 ),
                               ),
-                            ),
+                            )),
+                            const SizedBox(height: 4),
                           ],
                         ),
                       );

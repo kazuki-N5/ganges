@@ -4,42 +4,72 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/delivery_item_model.dart';
-import '../../providers/delivery_provider.dart';
 
 class DeliveryStatusCard extends HookConsumerWidget {
   final List<DeliveryItemProgress> items;
+  final ValueNotifier<Set<String>> shownDialogIds;
 
   const DeliveryStatusCard({
     super.key,
     required this.items,
+    required this.shownDialogIds,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 配送完了ダイアログの重複表示防止用状態
-    final shownDialogIds = useState<Set<String>>({});
+    // 各アイテムの前回の進捗（progress）を追跡するためのマップ
+    final previousProgressMap = useRef<Map<String, double>>({});
 
-    // 配送完了した荷物の検出とモーダル表示
+    // 配送完了した荷物の検出とモーダル表示（未確認の完了アイテムの場合にダイアログ表示）
     useEffect(() {
       for (final item in items) {
-        if (item.progress >= 1.0 && !shownDialogIds.value.contains(item.itemCode)) {
-          shownDialogIds.value = {...shownDialogIds.value, item.itemCode};
-          
+        final key = '${item.orderId}_${item.itemCode}';
+
+        // 完了済みで、まだ完了ダイアログが表示・確認されていない場合
+        if (item.progress >= 1.0 && !shownDialogIds.value.contains(key)) {
+          shownDialogIds.value = {...shownDialogIds.value, key};
+
           Future.microtask(() {
             if (context.mounted) {
               _showDeliveryCompletedDialog(context, item);
             }
           });
         }
+
+        // 最新の進捗状況を記憶
+        previousProgressMap.value[key] = item.progress;
       }
       return null;
     }, [items]);
 
     if (items.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(20),
-        color: Colors.white,
-        child: const Text('配送中の商品はありません'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -3)),
+          ],
+        ),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.local_shipping_outlined, size: 48, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              '現在、配送中の商品はありません',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+            ),
+            SizedBox(height: 4),
+            Text(
+              '新しい商品を購入するか、右上の「全表示」トグルをONにすると過去の配達完了履歴も確認できます。',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppColors.textSubtle),
+            ),
+          ],
+        ),
       );
     }
 
@@ -67,27 +97,15 @@ class DeliveryStatusCard extends HookConsumerWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.local_shipping, color: AppColors.amazonOrange, size: 20),
-                    SizedBox(width: 6),
-                    Text(
-                      'リアルタイムお届けステータス',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.darkNavy),
-                    ),
-                  ],
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    ref.read(deliveryProvider.notifier).restartDemo();
-                  },
-                  icon: const Icon(Icons.refresh, size: 14, color: AppColors.amazonOrange),
-                  label: const Text('デモ再始動', style: TextStyle(fontSize: 12, color: AppColors.amazonOrange)),
+                Icon(Icons.local_shipping, color: AppColors.amazonOrange, size: 20),
+                SizedBox(width: 6),
+                Text(
+                  'リアルタイムお届けステータス',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.darkNavy),
                 ),
               ],
             ),
@@ -242,6 +260,7 @@ class DeliveryStatusCard extends HookConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
       builder: (context) {
         return Container(
           decoration: const BoxDecoration(

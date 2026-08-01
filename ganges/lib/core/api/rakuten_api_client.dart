@@ -4,16 +4,82 @@ import '../../features/product/domain/product_model.dart';
 
 class RakutenApiClient {
   static String get _appId => dotenv.env['RAKUTEN_APP_ID'] ?? '';
+  static String get _accessKey => dotenv.env['RAKUTEN_ACCESS_KEY'] ?? '';
   static String get _affiliateId => dotenv.env['RAKUTEN_AFFILIATE_ID'] ?? '';
-  static const String _baseUrl = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601';
 
+  static const String _searchBaseUrl = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701';
+  static const String _fallbackSearchUrl = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601';
+  static const String _rankingBaseUrl = 'https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601';
 
-  // 開発中モックモードフラグ（本番化時は false に変更）
-  static const bool useMockOnly = true;
+  // 開発中モックモードフラグ（リアル通信に切り替え）
+  static const bool useMockOnly = false;
 
   final Dio _dio;
 
   RakutenApiClient({Dio? dio}) : _dio = dio ?? Dio();
+
+  /// 楽天市場商品ランキングAPI（おすすめ・総合ランキング商品を取得）
+  Future<List<Product>> getRankingProducts({int hits = 30}) async {
+    if (useMockOnly) {
+      return _getMockProducts('ランキング');
+    }
+
+    try {
+      final response = await _dio.get(
+        _rankingBaseUrl,
+        queryParameters: {
+          'applicationId': _appId,
+          if (_affiliateId.isNotEmpty) 'affiliateId': _affiliateId,
+          'format': 'json',
+          'hits': hits,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List items = response.data['Items'] ?? [];
+        return items.map((item) => Product.fromRakutenJson(item)).toList();
+      }
+    } catch (e) {
+      // エラー発生時は商品検索API（おすすめ）へフォールバック
+    }
+
+    return searchProducts(keyword: 'おすすめ', hits: hits);
+  }
+
+  /// ジャンルIDを指定して楽天おすすめ順で商品を取得
+  Future<List<Product>> getProductsByGenre({
+    required String genreId,
+    int hits = 10,
+  }) async {
+    if (useMockOnly || genreId.isEmpty) {
+      return getRankingProducts(hits: hits);
+    }
+
+    try {
+      final response = await _dio.get(
+        _searchBaseUrl,
+        options: Options(headers: {'Origin': 'https://example.com'}),
+        queryParameters: {
+          'applicationId': _appId,
+          if (_accessKey.isNotEmpty) 'accessKey': _accessKey,
+          if (_affiliateId.isNotEmpty) 'affiliateId': _affiliateId,
+          'format': 'json',
+          'genreId': genreId,
+          'sort': 'standard',
+          'hits': hits,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List items = response.data['Items'] ?? [];
+        return items.map((item) => Product.fromRakutenJson(item)).toList();
+      }
+    } catch (e) {
+      // 通信エラー時はランキングAPIへフォールバック
+    }
+
+    return getRankingProducts(hits: hits);
+  }
 
   Future<List<Product>> searchProducts({
     String keyword = 'ガジェット',
@@ -21,18 +87,25 @@ class RakutenApiClient {
     int page = 1,
     String? sort,
   }) async {
-    // 開発期間中は常にモックデータを返却（通信エラー防止＆高速化）
     if (useMockOnly) {
       return _getMockProducts(keyword);
     }
 
+    // 1. openapi 新仕様通信
     try {
       final response = await _dio.get(
-        _baseUrl,
+        _searchBaseUrl,
+        options: Options(
+          headers: {
+            'Origin': 'https://example.com',
+          },
+        ),
         queryParameters: {
           'applicationId': _appId,
-          'affiliateId': _affiliateId,
+          if (_accessKey.isNotEmpty) 'accessKey': _accessKey,
+          if (_affiliateId.isNotEmpty) 'affiliateId': _affiliateId,
           'format': 'json',
+
           'keyword': keyword.isEmpty ? 'おすすめ' : keyword,
           'hits': hits,
           'page': page,
@@ -45,12 +118,33 @@ class RakutenApiClient {
         return items.map((item) => Product.fromRakutenJson(item)).toList();
       }
     } catch (e) {
-      return _getMockProducts(keyword);
+      // 2. 旧APIエンドポイントへフォールバック
+      try {
+        final response = await _dio.get(
+          _fallbackSearchUrl,
+          queryParameters: {
+            'applicationId': _appId,
+            if (_affiliateId.isNotEmpty) 'affiliateId': _affiliateId,
+            'format': 'json',
+            'keyword': keyword.isEmpty ? 'おすすめ' : keyword,
+            'hits': hits,
+            'page': page,
+            if (sort != null) 'sort': sort,
+          },
+        );
+
+        if (response.statusCode == 200 && response.data != null) {
+          final List items = response.data['Items'] ?? [];
+          return items.map((item) => Product.fromRakutenJson(item)).toList();
+        }
+      } catch (fallbackErr) {
+        return _getMockProducts(keyword);
+      }
     }
-    return [];
+    return _getMockProducts(keyword);
   }
 
-  // 開発用モック商品群（通信不要）
+  // 開発用モック商品群（通信失敗時・緊急フォールバック用）
   List<Product> _getMockProducts(String keyword) {
     final mockTitles = [
       'TONOR ダイナミックマイク カラオケマイク 単一指向性 ハンドヘルド',

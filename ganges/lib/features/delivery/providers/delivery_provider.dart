@@ -24,111 +24,68 @@ class DeliveryNotifier extends StateNotifier<List<DeliveryItemProgress>> {
   void _initDeliveryItems(AsyncValue<List<OrderModel>> historyState) {
     historyState.whenData((orders) {
       if (orders.isNotEmpty) {
-        // 最新の注文、または直近の注文を取得
-        final latestOrder = orders.first;
+        final existingMap = {
+          for (final item in state) '${item.orderId}_${item.itemCode}': item
+        };
+
         final items = <DeliveryItemProgress>[];
-
         final now = DateTime.now();
-        final elapsedSec = now.difference(latestOrder.orderedAt).inSeconds;
 
-        for (int i = 0; i < latestOrder.items.length; i++) {
-          final item = latestOrder.items[i];
-          final hub = DeliveryHubResolver.resolveFromItemCode(item.itemCode);
+        // すべての注文履歴を処理（複数の注文の荷物を同時に配達・追跡可能に）
+        for (final order in orders) {
+          final elapsedSec = now.difference(order.orderedAt).inSeconds;
 
-          // 発送準備時間: 1〜8時間の乱数
-          final dispatchDelayHours = 1 + _random.nextInt(8);
-          // 発送後所要時間: 24〜48時間 (1〜2日)
-          final shippingDurationHours = 24 + _random.nextInt(25);
+          for (int i = 0; i < order.items.length; i++) {
+            final item = order.items[i];
+            final key = '${order.orderId}_${item.itemCode}';
 
-          // シミュレーション用の発送準備時間（秒）: 1時間＝約2.5秒の短縮スケール
-          final totalDispatchWaitSec = dispatchDelayHours * 2.5;
-          final remainingWaitSec = max(0.0, totalDispatchWaitSec - elapsedSec);
+            // すでに配信進行中の荷物は進行状況（progressやカウントダウン）を維持
+            if (existingMap.containsKey(key)) {
+              items.add(existingMap[key]!);
+            } else {
+              final hub = DeliveryHubResolver.resolveFromItemCode(item.itemCode);
 
-          double initialProgress = 0.0;
-          DateTime? dispatchedAt;
-          if (remainingWaitSec <= 0) {
-            final driveSec = elapsedSec - totalDispatchWaitSec;
-            initialProgress = (driveSec / 90.0).clamp(0.0, 1.0);
-            dispatchedAt = now.subtract(Duration(seconds: driveSec.round()));
+              // 発送準備時間: 1〜8時間の乱数
+              final dispatchDelayHours = 1 + _random.nextInt(8);
+              // 発送後所要時間: 24〜48時間 (1〜2日)
+              final shippingDurationHours = 24 + _random.nextInt(25);
+
+              // シミュレーション用の発送準備時間（秒）: 1時間＝約2.5秒の短縮スケール
+              final totalDispatchWaitSec = dispatchDelayHours * 2.5;
+              final remainingWaitSec = max(0.0, totalDispatchWaitSec - elapsedSec);
+
+              double initialProgress = 0.0;
+              DateTime? dispatchedAt;
+              if (remainingWaitSec <= 0) {
+                final driveSec = elapsedSec - totalDispatchWaitSec;
+                initialProgress = (driveSec / 90.0).clamp(0.0, 1.0);
+                dispatchedAt = now.subtract(Duration(seconds: driveSec.round()));
+              }
+
+              items.add(DeliveryItemProgress(
+                orderId: order.orderId,
+                itemCode: item.itemCode,
+                title: item.title,
+                imageUrl: item.imageUrl,
+                price: item.price,
+                quantity: item.quantity,
+                hub: hub,
+                progress: initialProgress,
+                orderTime: order.orderedAt,
+                dispatchDelayHours: dispatchDelayHours,
+                shippingDurationHours: shippingDurationHours,
+                dispatchRemainingSec: remainingWaitSec,
+                dispatchedAt: dispatchedAt,
+              ));
+            }
           }
-
-          items.add(DeliveryItemProgress(
-            orderId: latestOrder.orderId,
-            itemCode: item.itemCode,
-            title: item.title,
-            imageUrl: item.imageUrl,
-            price: item.price,
-            quantity: item.quantity,
-            hub: hub,
-            progress: initialProgress,
-            orderTime: latestOrder.orderedAt,
-            dispatchDelayHours: dispatchDelayHours,
-            shippingDurationHours: shippingDurationHours,
-            dispatchRemainingSec: remainingWaitSec,
-            dispatchedAt: dispatchedAt,
-          ));
         }
         state = items;
       } else {
-        // 注文履歴がない場合のデモ用疑似配送商品データ
-        state = _generateDemoItems();
+        // 注文履歴がない場合
+        state = [];
       }
     });
-  }
-
-  static List<DeliveryItemProgress> _generateDemoItems() {
-    final now = DateTime.now();
-
-    // デモ用: 1〜8時間の乱数を生成して割り当て
-    final delay1 = 1 + _random.nextInt(8); // 例: 3時間
-    final delay2 = 1 + _random.nextInt(8); // 例: 6時間
-    final delay3 = 1 + _random.nextInt(8); // 例: 1時間
-
-    return [
-      DeliveryItemProgress(
-        orderId: 'DEMO-001',
-        itemCode: 'demo_mic_01',
-        title: 'ダイナミックマイク USBコンデンサー',
-        imageUrl: '',
-        price: 8980,
-        quantity: 1,
-        hub: DeliveryHubResolver.resolveFromItemCode('demo_mic_01'),
-        progress: 0.65,
-        orderTime: now.subtract(const Duration(seconds: 40)),
-        dispatchDelayHours: delay1,
-        shippingDurationHours: 36, // 1.5日
-        dispatchRemainingSec: 0.0, // すでに発送済み
-        dispatchedAt: now.subtract(const Duration(seconds: 58)), // 90秒で1.0到達なので0.65進捗は58.5秒前発送
-      ),
-      DeliveryItemProgress(
-        orderId: 'DEMO-001',
-        itemCode: 'demo_earphone_02',
-        title: 'ノイズキャンセリング ワイヤレスイヤホン',
-        imageUrl: '',
-        price: 14800,
-        quantity: 1,
-        hub: DeliveryHubResolver.resolveFromItemCode('demo_earphone_02'),
-        progress: 0.0,
-        orderTime: now.subtract(const Duration(seconds: 20)),
-        dispatchDelayHours: delay2,
-        shippingDurationHours: 42, // 1.75日
-        dispatchRemainingSec: delay2 * 2.5, // 発送準備中カウントダウン中
-      ),
-      DeliveryItemProgress(
-        orderId: 'DEMO-001',
-        itemCode: 'demo_cat_sand_03',
-        title: '天然シリカ 猫砂 5L 3袋セット',
-        imageUrl: '',
-        price: 2980,
-        quantity: 1,
-        hub: DeliveryHubResolver.resolveFromItemCode('demo_cat_sand_03'),
-        progress: 0.0,
-        orderTime: now.subtract(const Duration(seconds: 10)),
-        dispatchDelayHours: delay3,
-        shippingDurationHours: 24, // 1日
-        dispatchRemainingSec: delay3 * 2.5, // 発送準備中カウントダウン中
-      ),
-    ];
   }
 
   void _startAnimationTimer() {
@@ -164,11 +121,6 @@ class DeliveryNotifier extends StateNotifier<List<DeliveryItemProgress>> {
         state = updatedList;
       }
     });
-  }
-
-  /// デモ配達をリセット/再始動する
-  void restartDemo() {
-    state = _generateDemoItems();
   }
 
   @override

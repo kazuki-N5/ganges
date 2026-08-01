@@ -10,6 +10,7 @@ import '../../cart/domain/cart_item_model.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../checkout/presentation/checkout_success_screen.dart';
 import '../domain/product_model.dart';
+import '../repository/product_repository.dart';
 
 class ProductDetailScreen extends HookConsumerWidget {
   final Product product;
@@ -20,120 +21,21 @@ class ProductDetailScreen extends HookConsumerWidget {
     final Uri url = Uri.parse(product.itemUrl);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ページを開くことができませんでした')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('ページを開くことができませんでした')));
       }
     }
   }
 
   // 添付画像通りの「カートに追加されました」＋「一緒によく購入されている商品(10個)」ボトムシートモーダル
-  void _showAddToCartModal(BuildContext context, WidgetRef ref, int selectedQuantity) {
+  void _showAddToCartModal(
+    BuildContext context,
+    WidgetRef ref,
+    int selectedQuantity,
+  ) {
     final currencyFormat = NumberFormat("#,###");
-
-    // 10個の「この商品とよく一緒に購入されている商品」サンプルデータ
-    final recommendedProducts = [
-      Product(
-        itemCode: 'rec-1',
-        title: '【Amazon.co.jp限定】ロジクール ワイヤレスキーボード 無線 MX KEYS mini KX700GRd 日本語配列 国内正規品',
-        price: 12980,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Keyboard',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.6,
-        reviewCount: 1294,
-        shopName: 'Logicool公式ストア',
-      ),
-      Product(
-        itemCode: 'rec-2',
-        title: 'Aenllosi収納ケース 互換品 Logicool ロジクール M575SPd / M575S / M575GR 硬質EVAシェル 衝撃吸収',
-        price: 1899,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Case',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.4,
-        reviewCount: 912,
-        shopName: 'Aenllosi直営店',
-      ),
-      Product(
-        itemCode: 'rec-3',
-        title: 'ロジクール対応 トラックボール マウス ERGO M575 シリーズ専用 15度 傾斜 角度 スタンド チルト補助パッド',
-        price: 1480,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Stand',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.3,
-        reviewCount: 430,
-        shopName: 'トラックボールアクセサリー工房',
-      ),
-      Product(
-        itemCode: 'rec-4',
-        title: 'エレコム パソコン受信用 USB 超小型アダプタ Bluetooth 5.0 Class2 2.4GHz',
-        price: 1280,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Adapter',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.2,
-        reviewCount: 2150,
-        shopName: 'エレコムダイレクトショップ',
-      ),
-      Product(
-        itemCode: 'rec-5',
-        title: 'Anker PowerLine III USB-C & USB-C 2.0 ケーブル 60W 1.8m ブラック 超高耐久',
-        price: 1190,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Cable',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.7,
-        reviewCount: 8900,
-        shopName: 'Anker Direct',
-      ),
-      Product(
-        itemCode: 'rec-6',
-        title: 'エレコム リストレスト 疲労軽減 低反発 COMFY ブラック MOH-013BK',
-        price: 980,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Wristrest',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.1,
-        reviewCount: 3410,
-        shopName: 'エレコムダイレクトショップ',
-      ),
-      Product(
-        itemCode: 'rec-7',
-        title: 'サンワサプライ 大型マウスパッド スムースクロス仕様 300×240mm ブラック',
-        price: 850,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Mousepad',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.3,
-        reviewCount: 1520,
-        shopName: 'サンワダイレクト',
-      ),
-      Product(
-        itemCode: 'rec-8',
-        title: 'エアダスター 超強力 逆さ使用OK 350ml 3本セット ノンフロン ECO',
-        price: 1580,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Airduster',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.5,
-        reviewCount: 5100,
-        shopName: 'PCサプライWEB店',
-      ),
-      Product(
-        itemCode: 'rec-9',
-        title: 'クリーニングクロス 超極細繊維 マイクロファイバー 液晶画面 クリーナー 5枚入',
-        price: 790,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Cloth',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.6,
-        reviewCount: 1890,
-        shopName: 'クリーンパートナー',
-      ),
-      Product(
-        itemCode: 'rec-10',
-        title: 'モニターアーム シングル 17~32インチ対応 昇降デスク適応 耐荷重9kg 360度回転',
-        price: 4980,
-        imageUrl: 'https://dummyimage.com/200x200/e5e5e5/333333.png&text=Arm',
-        itemUrl: 'https://hb.afl.rakuten.co.jp/',
-        reviewAverage: 4.5,
-        reviewCount: 6700,
-        shopName: 'デスク環境Lab',
-      ),
-    ];
+    final client = ref.read(rakutenApiClientProvider);
 
     showModalBottomSheet(
       context: context,
@@ -148,7 +50,7 @@ class ProductDetailScreen extends HookConsumerWidget {
           ),
           child: Column(
             children: [
-              // 1. 右上の「完了」ボタン ＆ ヘッダー
+              // 1. ヘッダー（完了ボタン）
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: Row(
@@ -158,16 +60,23 @@ class ProductDetailScreen extends HookConsumerWidget {
                       onPressed: () => Navigator.pop(context),
                       child: const Text(
                         '完了',
-                        style: TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // 2. 添付画像そのままの「✔ カートに追加されました」表示
+              // 2. 「✔ カートに追加されました」表示
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: [
                     ClipRRect(
@@ -175,7 +84,10 @@ class ProductDetailScreen extends HookConsumerWidget {
                       child: SizedBox(
                         width: 48,
                         height: 48,
-                        child: CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imageUrl,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -186,108 +98,91 @@ class ProductDetailScreen extends HookConsumerWidget {
                         color: AppColors.amazonGreen,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     const Text(
                       'カートに追加されました',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.amazonGreen),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.amazonGreen,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 10),
-              const Divider(height: 1, thickness: 1, color: AppColors.borderGrey),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.borderGrey,
+              ),
 
-              // 3. 「この商品とよく一緒に購入されている商品」見出し ＆ 10個の縦リスト
+              // 3. ジャンル別おすすめ商品10選（非同期通信取得）
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'この商品とよく一緒に購入されている商品',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark),
-                      ),
-                      const SizedBox(height: 14),
+                child: FutureBuilder<List<Product>>(
+                  future: client.getProductsByGenre(genreId: product.genreId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40.0),
+                          child: CircularProgressIndicator(
+                            color: AppColors.amazonOrange,
+                          ),
+                        ),
+                      );
+                    }
 
-                      ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: recommendedProducts.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final recItem = recommendedProducts[index];
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 90,
-                                height: 90,
-                                child: CachedNetworkImage(imageUrl: recItem.imageUrl, fit: BoxFit.contain),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      recItem.title,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 13, color: AppColors.amazonLinkBlue, height: 1.3),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        const Icon(Icons.star_half, color: Colors.amber, size: 14),
-                                        const SizedBox(width: 4),
-                                        Text('${recItem.reviewCount}件のレビュー', style: const TextStyle(fontSize: 11, color: AppColors.amazonLinkBlue)),
-                                        const SizedBox(width: 4),
-                                        const Text('✓prime', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'タイムセール価格: ¥${currencyFormat.format(recItem.price)}',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark),
-                                    ),
-                                    const SizedBox(height: 8),
+                    // 自分自身を除外した関連商品リスト
+                    final rawProducts = snapshot.data ?? [];
+                    final relatedProducts = rawProducts
+                        .where((item) => item.itemCode != product.itemCode)
+                        .take(10)
+                        .toList();
 
-                                    // 黄色の「カートに追加」ボタン
-                                    SizedBox(
-                                      height: 34,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.amazonYellow,
-                                          foregroundColor: AppColors.textDark,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
-                                          elevation: 0,
-                                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        ),
-                                        onPressed: () {
-                                          ref.read(cartProvider.notifier).addToCart(recItem);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('カートに追加しました'), duration: Duration(seconds: 1)),
-                                          );
-                                        },
-                                        child: const Text('カートに追加', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+                    if (relatedProducts.isEmpty) {
+                      return const Center(child: Text('関連商品が見つかりませんでした'));
+                    }
+
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'この商品とよく一緒に購入されている商品',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          ListView.separated(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: relatedProducts.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final recItem = relatedProducts[index];
+                              return _RelatedProductTile(
+                                recItem: recItem,
+                                currencyFormat: currencyFormat,
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -298,7 +193,11 @@ class ProductDetailScreen extends HookConsumerWidget {
   }
 
   // 参考画像「今すぐ買うを押した時」のAmazonボトムシート（モーダル）表示
-  void _showBuyNowModal(BuildContext context, WidgetRef ref, int selectedQuantity) {
+  void _showBuyNowModal(
+    BuildContext context,
+    WidgetRef ref,
+    int selectedQuantity,
+  ) {
     final currencyFormat = NumberFormat("#,###");
     final totalPrice = product.price * selectedQuantity;
 
@@ -330,7 +229,10 @@ class ProductDetailScreen extends HookConsumerWidget {
                     Container(
                       width: 36,
                       height: 4,
-                      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close, color: AppColors.textDark),
@@ -346,7 +248,10 @@ class ProductDetailScreen extends HookConsumerWidget {
                       child: SizedBox(
                         width: 70,
                         height: 70,
-                        child: CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imageUrl,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -354,11 +259,20 @@ class ProductDetailScreen extends HookConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('8月21日金曜日', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const Text(
+                            '8月21日金曜日',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             '数量: $selectedQuantity  /  発送元および販売元: ${product.shopName.isNotEmpty ? product.shopName : "Amazonストア"}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.amazonLinkBlue),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.amazonLinkBlue,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -373,16 +287,34 @@ class ProductDetailScreen extends HookConsumerWidget {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 8,
+                        ),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.amazonLinkBlue, width: 2),
+                          border: Border.all(
+                            color: AppColors.amazonLinkBlue,
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                           color: Colors.blue[50],
                         ),
                         child: Column(
                           children: const [
-                            Text('8月21日金曜日', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                            Text('無料 通常配送', style: TextStyle(fontSize: 11, color: AppColors.textSubtle)),
+                            Text(
+                              '8月21日金曜日',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              '無料 通常配送',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSubtle,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -390,15 +322,28 @@ class ProductDetailScreen extends HookConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 8,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: AppColors.borderGrey),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
                           children: const [
-                            Text('8月24日月曜日 8:00~12:00', style: TextStyle(fontSize: 11), maxLines: 1),
-                            Text('無料 お届け日時指定便', style: TextStyle(fontSize: 10, color: AppColors.textSubtle)),
+                            Text(
+                              '8月24日月曜日 8:00~12:00',
+                              style: TextStyle(fontSize: 11),
+                              maxLines: 1,
+                            ),
+                            Text(
+                              '無料 お届け日時指定便',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSubtle,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -411,17 +356,45 @@ class ProductDetailScreen extends HookConsumerWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: const [
-                    Text('お届け先', style: TextStyle(color: AppColors.textSubtle, fontSize: 13)),
+                    Text(
+                      'お届け先',
+                      style: TextStyle(
+                        color: AppColors.textSubtle,
+                        fontSize: 13,
+                      ),
+                    ),
                     SizedBox(width: 16),
-                    Expanded(child: Text('西村太郎、 261-0013, 千葉県...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        '西村太郎、 261-0013, 千葉県...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: const [
-                    Text('お支払い', style: TextStyle(color: AppColors.textSubtle, fontSize: 13)),
+                    Text(
+                      'お支払い',
+                      style: TextStyle(
+                        color: AppColors.textSubtle,
+                        fontSize: 13,
+                      ),
+                    ),
                     SizedBox(width: 16),
-                    Expanded(child: Text('Amazon Prime Mastercard 4058', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        'Amazon Prime Mastercard 4058',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -430,13 +403,32 @@ class ProductDetailScreen extends HookConsumerWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text('合計 (数量: $selectedQuantity)', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                      '合計 (数量: $selectedQuantity)',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('¥${currencyFormat.format(totalPrice)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                        const Text('(税込み)', style: TextStyle(fontSize: 11, color: AppColors.textSubtle)),
+                        Text(
+                          '¥${currencyFormat.format(totalPrice)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const Text(
+                          '(税込み)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSubtle,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -450,7 +442,9 @@ class ProductDetailScreen extends HookConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.amazonOrange,
                       foregroundColor: AppColors.textDark,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
                       elevation: 1,
                     ),
                     onPressed: () async {
@@ -461,12 +455,25 @@ class ProductDetailScreen extends HookConsumerWidget {
                         quantity: selectedQuantity,
                         addedAt: DateTime.now(),
                       );
-                      final order = await ref.read(historyProvider.notifier).placeOrder(cartItems: [singleCartItem]);
+                      final order = await ref
+                          .read(historyProvider.notifier)
+                          .placeOrder(cartItems: [singleCartItem]);
                       if (order != null && context.mounted) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutSuccessScreen(order: order)));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CheckoutSuccessScreen(order: order),
+                          ),
+                        );
                       }
                     },
-                    child: const Text('注文を確定する', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      '注文を確定する',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -488,6 +495,12 @@ class ProductDetailScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat("#,###");
     final selectedQuantity = useState(1);
+    final currentImageIndex = useState(0);
+    final pageController = usePageController();
+
+    final displayImages = product.imageUrls.isNotEmpty
+        ? product.imageUrls
+        : (product.imageUrl.isNotEmpty ? [product.imageUrl] : <String>[]);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -507,7 +520,10 @@ class ProductDetailScreen extends HookConsumerWidget {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: AppColors.textDark,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
@@ -520,12 +536,26 @@ class ProductDetailScreen extends HookConsumerWidget {
                       child: Row(
                         children: const [
                           SizedBox(width: 10),
-                          Icon(Icons.search, color: AppColors.textDark, size: 20),
+                          Icon(
+                            Icons.search,
+                            color: AppColors.textDark,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
-                            child: Text('検索または質問する', style: TextStyle(color: AppColors.textSubtle, fontSize: 13)),
+                            child: Text(
+                              '検索または質問する',
+                              style: TextStyle(
+                                color: AppColors.textSubtle,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                          Icon(Icons.camera_alt_outlined, color: AppColors.textDark, size: 20),
+                          Icon(
+                            Icons.camera_alt_outlined,
+                            color: AppColors.textDark,
+                            size: 20,
+                          ),
                           SizedBox(width: 10),
                         ],
                       ),
@@ -548,15 +578,31 @@ class ProductDetailScreen extends HookConsumerWidget {
                 children: [
                   Text(
                     'ブランド: ${product.shopName.isNotEmpty ? product.shopName : "Amazonストア"}',
-                    style: const TextStyle(color: AppColors.amazonLinkBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: AppColors.amazonLinkBlue,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Row(
                     children: [
-                      Text(product.reviewAverage.toStringAsFixed(1), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        product.reviewAverage.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 2),
                       const Icon(Icons.star, color: Colors.amber, size: 14),
                       const SizedBox(width: 2),
-                      Text('(${currencyFormat.format(product.reviewCount)})', style: const TextStyle(fontSize: 11, color: AppColors.amazonLinkBlue)),
+                      Text(
+                        '(${currencyFormat.format(product.reviewCount)})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.amazonLinkBlue,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -567,27 +613,82 @@ class ProductDetailScreen extends HookConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: Text(
                 product.title,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark, height: 1.3),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDark,
+                  height: 1.3,
+                ),
               ),
             ),
 
             Stack(
               children: [
-                Container(
-                  height: 300,
+                SizedBox(
+                  height: 320,
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  child: product.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.contain)
-                      : const Icon(Icons.shopping_bag, size: 100, color: Colors.grey),
+                  child: displayImages.isNotEmpty
+                      ? PageView.builder(
+                          controller: pageController,
+                          onPageChanged: (index) {
+                            currentImageIndex.value = index;
+                          },
+                          itemCount: displayImages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: CachedNetworkImage(
+                                imageUrl: displayImages[index],
+                                fit: BoxFit.contain,
+                              ),
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.shopping_bag,
+                          size: 100,
+                          color: Colors.grey,
+                        ),
                 ),
+                if (displayImages.length > 1)
+                  Positioned(
+                    left: 14,
+                    bottom: 14,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${currentImageIndex.value + 1} / ${displayImages.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   right: 14,
                   bottom: 14,
                   child: Row(
                     children: [
-                      IconButton(icon: const Icon(Icons.favorite_border, color: AppColors.textDark), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.share_outlined, color: AppColors.textDark), onPressed: () {}),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.favorite_border,
+                          color: AppColors.textDark,
+                        ),
+                        onPressed: () {},
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.share_outlined,
+                          color: AppColors.textDark,
+                        ),
+                        onPressed: () {},
+                      ),
                     ],
                   ),
                 ),
@@ -604,17 +705,41 @@ class ProductDetailScreen extends HookConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      const Text('¥', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                      const Text(
+                        '¥',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
                       Text(
                         currencyFormat.format(product.price),
-                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                       ),
                       const SizedBox(width: 6),
-                      const Text('税込', style: TextStyle(fontSize: 12, color: AppColors.textSubtle)),
+                      const Text(
+                        '税込',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSubtle,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('在庫あり。', style: TextStyle(color: AppColors.amazonGreen, fontWeight: FontWeight.bold, fontSize: 15)),
+                  const Text(
+                    '在庫あり。',
+                    style: TextStyle(
+                      color: AppColors.amazonGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
                   Container(
@@ -629,8 +754,15 @@ class ProductDetailScreen extends HookConsumerWidget {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
                         value: selectedQuantity.value,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: AppColors.textDark,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                         onChanged: (int? newValue) {
                           if (newValue != null) {
                             selectedQuantity.value = newValue;
@@ -638,11 +770,12 @@ class ProductDetailScreen extends HookConsumerWidget {
                         },
                         items: List.generate(10, (index) => index + 1)
                             .map<DropdownMenuItem<int>>((int value) {
-                          return DropdownMenuItem<int>(
-                            value: value,
-                            child: Text('数量: $value'),
-                          );
-                        }).toList(),
+                              return DropdownMenuItem<int>(
+                                value: value,
+                                child: Text('数量: $value'),
+                              );
+                            })
+                            .toList(),
                       ),
                     ),
                   ),
@@ -656,15 +789,32 @@ class ProductDetailScreen extends HookConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.amazonYellow,
                         foregroundColor: AppColors.textDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: () {
                         // カートに追加後、添付画像通りのボトムシートモーダルを表示！
-                        ref.read(cartProvider.notifier).addToCart(product, quantity: selectedQuantity.value);
-                        _showAddToCartModal(context, ref, selectedQuantity.value);
+                        ref
+                            .read(cartProvider.notifier)
+                            .addToCart(
+                              product,
+                              quantity: selectedQuantity.value,
+                            );
+                        _showAddToCartModal(
+                          context,
+                          ref,
+                          selectedQuantity.value,
+                        );
                       },
-                      child: Text('カートに入れる (${selectedQuantity.value}個)', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'カートに入れる (${selectedQuantity.value}個)',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -677,11 +827,23 @@ class ProductDetailScreen extends HookConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.amazonOrange,
                         foregroundColor: AppColors.textDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                         elevation: 0,
                       ),
-                      onPressed: () => _showBuyNowModal(context, ref, selectedQuantity.value),
-                      child: const Text('今すぐ買う', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      onPressed: () => _showBuyNowModal(
+                        context,
+                        ref,
+                        selectedQuantity.value,
+                      ),
+                      child: const Text(
+                        '今すぐ買う',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -696,13 +858,26 @@ class ProductDetailScreen extends HookConsumerWidget {
                     ),
                     child: Column(
                       children: [
-                        const Text('本物を購入したい場合（アフィリエイト連携）', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent, fontSize: 12)),
+                        const Text(
+                          '本物を購入したい場合（アフィリエイト連携）',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red[900], side: const BorderSide(color: Colors.redAccent)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red[900],
+                            side: const BorderSide(color: Colors.redAccent),
+                          ),
                           onPressed: () => _launchAffiliateUrl(context),
                           icon: const Icon(Icons.open_in_new, size: 16),
-                          label: const Text('本物の楽天市場で見る', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text(
+                            '本物の楽天市場で見る',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
@@ -717,3 +892,153 @@ class ProductDetailScreen extends HookConsumerWidget {
     );
   }
 }
+
+/// 関連商品モーダル用アイテムタイルのConsumerWidget
+class _RelatedProductTile extends ConsumerWidget {
+  final Product recItem;
+  final NumberFormat currencyFormat;
+
+  const _RelatedProductTile({
+    required this.recItem,
+    required this.currencyFormat,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cartItems = ref.watch(cartProvider);
+    final isInCart =
+        cartItems.any((item) => item.product.itemCode == recItem.itemCode);
+
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductDetailScreen(product: recItem),
+          ),
+        );
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            height: 90,
+            child: CachedNetworkImage(
+              imageUrl: recItem.imageUrl,
+              fit: BoxFit.contain,
+              errorWidget: (c, u, e) => const Icon(Icons.broken_image),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recItem.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.amazonLinkBlue,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                      size: 14,
+                    ),
+                    Text(
+                      ' ${recItem.reviewAverage.toStringAsFixed(1)}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(${recItem.reviewCount}件)',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.amazonLinkBlue,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '¥${currencyFormat.format(recItem.price)}',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // カート追加状態に応じた表示切り替え
+                if (isInCart)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 18,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'カートに追加しました',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 34,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.amazonYellow,
+                        foregroundColor: AppColors.textDark,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(17),
+                        ),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                      ),
+                      onPressed: () {
+                        ref.read(cartProvider.notifier).addToCart(recItem);
+                      },
+                      child: const Text(
+                        'カートに追加',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

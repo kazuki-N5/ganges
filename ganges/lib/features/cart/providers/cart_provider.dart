@@ -116,39 +116,45 @@ class HistoryNotifier extends StateNotifier<AsyncValue<List<OrderModel>>> {
         price: c.product.price,
         quantity: c.quantity,
         imageUrl: c.product.imageUrl,
+        itemUrl: c.product.itemUrl,
       )).toList(),
     );
 
-    await db.transaction((txn) async {
-      // 1. orders に追加
-      await txn.insert('orders', order.toMap());
+    try {
+      await db.transaction((txn) async {
+        // 1. orders に追加
+        await txn.insert('orders', order.toMap());
 
-      // 2. order_items に追加
-      for (var item in order.items) {
-        await txn.insert('order_items', item.toMap());
-      }
+        // 2. order_items に追加
+        for (var item in order.items) {
+          await txn.insert('order_items', item.toMap());
+        }
 
-      // 3. user_stats 更新
-      final statsList = await txn.query('user_stats', where: 'id = ?', whereArgs: ['main_stats']);
-      if (statsList.isNotEmpty) {
-        final currentSaved = (statsList.first['total_saved_amount'] as int? ?? 0) + total;
-        final currentCount = (statsList.first['total_order_count'] as int? ?? 0) + 1;
+        // 3. user_stats 更新
+        final statsList = await txn.query('user_stats', where: 'id = ?', whereArgs: ['main_stats']);
+        if (statsList.isNotEmpty) {
+          final currentSaved = (statsList.first['total_saved_amount'] as int? ?? 0) + total;
+          final currentCount = (statsList.first['total_order_count'] as int? ?? 0) + 1;
 
-        await txn.update(
-          'user_stats',
-          {
-            'total_saved_amount': currentSaved,
-            'total_order_count': currentCount,
-            'updated_at': now.toIso8601String(),
-          },
-          where: 'id = ?',
-          whereArgs: ['main_stats'],
-        );
-      }
-    });
+          await txn.update(
+            'user_stats',
+            {
+              'total_saved_amount': currentSaved,
+              'total_order_count': currentCount,
+              'updated_at': now.toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: ['main_stats'],
+          );
+        }
+      });
 
-    await loadHistory();
-    return order;
+      await loadHistory();
+      return order;
+    } catch (e) {
+      print('注文確定エラー: $e');
+      return null;
+    }
   }
 }
 

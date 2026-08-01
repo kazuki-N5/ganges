@@ -6,10 +6,10 @@ final rakutenApiClientProvider = Provider<RakutenApiClient>((ref) {
   return RakutenApiClient();
 });
 
-// ホーム画面用おすすめ商品プロバイダー
+// ホーム画面用おすすめ商品プロバイダー (楽天市場ランキングAPIを使用)
 final homeProductsProvider = FutureProvider<List<Product>>((ref) async {
   final client = ref.watch(rakutenApiClientProvider);
-  return await client.searchProducts(keyword: 'ランキング ガジェット おすすめ', hits: 30);
+  return await client.getRankingProducts(hits: 30);
 });
 
 // キーワード検索用プロバイダー (family)
