@@ -16,3 +16,7 @@
 .DS_Store
 *.log
 .vscode/
+
+# App notes / private docs
+アプリ.md
+

@@ -6,6 +6,7 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/cart/presentation/cart_screen.dart';
 import 'features/cart/providers/cart_provider.dart';
+import 'features/delivery/presentation/delivery_live_map_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 
@@ -34,6 +35,7 @@ class MainNavigationShell extends HookConsumerWidget {
     final screens = const [
       HomeScreen(),
       CartScreen(),
+      DeliveryLiveMapScreen(),
       HistoryScreen(),
     ];
 
@@ -71,7 +73,15 @@ class MainNavigationShell extends HookConsumerWidget {
             _buildNavItem(
               index: 2,
               selectedIndex: selectedIndex.value,
-              label: 'マイページ・履歴',
+              label: '配達 🚚',
+              icon: Icons.local_shipping_outlined,
+              activeIcon: Icons.local_shipping,
+              onTap: (idx) => selectedIndex.value = idx,
+            ),
+            _buildNavItem(
+              index: 3,
+              selectedIndex: selectedIndex.value,
+              label: 'マイページ',
               icon: Icons.person_outline,
               activeIcon: Icons.person,
               onTap: (idx) => selectedIndex.value = idx,
@@ -96,7 +106,7 @@ class MainNavigationShell extends HookConsumerWidget {
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 90,
+        width: 75,
         height: 60,
         child: Stack(
           alignment: Alignment.center,
